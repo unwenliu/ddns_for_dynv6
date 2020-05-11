@@ -28,7 +28,7 @@ def get_config(path="config.json"):
         logging.error("配置文件{}不存在".format(path))
         with open(path, 'w') as config_file:
             config = {
-                "host": "your hostname",
+                "hostname": "your hostname",
                 "token": "your token",
                 "ipv4": True,
                 "ipv6": True
@@ -58,17 +58,37 @@ def get_ip():
     ipv6_address = all_ipv6_address[0][0]
     return {"ipv4": ipv4_address, "ipv6": ipv6_address}
 
-def res(**kwargs):
+
+def res(**config):
     """
     向dyn6发送请求
     :return:
     """
     url = 'https://dynv6.com/api/update'
-    r = requests.get(url,params=kwargs)
-    if r.status_code != 200:
-        logging.error("更新ip地址失败,原因是%s",r.status_code)
+    r = requests.get(url, params=config)
+    return r
+
+
+def ipv4_log(response):
+    if response.status_code != 200:
+        logging.error("更新ipv4地址失败，原因是dynv6返回{}，{}的异常响应".format(r.status_code, r.text))
     else:
-        logging.info("更新ip地址成功")
+        logging.info("更新ipv4地址成功，dynv6返回{}的正常响应".format(r.text))
+
+
+def ipv6_log(response):
+    if response.status_code != 200:
+        logging.error("更新ipv6地址失败，原因是dynv6返回{}，{}的异常响应".format(r.status_code, r.text))
+    else:
+        logging.info("更新ipv6地址成功，dynv6返回{}的正常响应".format(r.text))
+
+
+def ipv4_ipv6_log(response):
+    if response.status_code != 200:
+        logging.error("更新ipv4地址和ipv6地址失败，原因是dynv6返回{}，{}的异常响应".format(r.status_code, r.text))
+    else:
+        logging.info("更新ipv4地址和ipv6地址成功，dynv6返回{}的正常响应".format(r.text))
+
 
 def parse_args():
     """
@@ -78,26 +98,39 @@ def parse_args():
     parser = ArgumentParser(description=__description__, formatter_class=RawTextHelpFormatter)
     use_config_group = parser.add_argument_group(title='使用配置文件运行')
     use_args_group = parser.add_argument_group(title='使用参数运行')
-    use_config_group.add_argument('-c', '--config', action='store_true', default='config.json',
-                        help="指定配置文件运行 [配置文件路径]")
-    use_args_group.add_argument('-host',required=True,help="要更新的域名")
-    use_args_group.add_argument('-token',required=True,help="dynv6里域名所绑定的token")
-    use_args_group.add_argument('-4', '--ipv4', action='store_true', help="更新ipv4地址",dest='ipv4')
-    use_args_group.add_argument('-6', '--ipv6', action='store_true', help="更新ipv6地址",dest='ipv6')
+    use_config_group.add_argument('-c', '--config', help="指定配置文件运行 [配置文件路径]", default='config.json')
+    use_args_group.add_argument('-hostname', help="要更新的域名")
+    use_args_group.add_argument('-token', help="dynv6里域名所绑定的token")
+    use_args_group.add_argument('-4', '--ipv4', default='false', action='store_true', help="更新ipv4地址", dest='ipv4')
+    use_args_group.add_argument('-6', '--ipv6', default='false', action='store_true', help="更新ipv6地址", dest='ipv6')
     parser.add_argument('-v', '--version', action='version', version=__version__, help='显示版本信息')
     args = parser.parse_args()
     return args
 
 
 if __name__ == '__main__':
-    # ip = get_ip()
+    ip = get_ip()
     args = parse_args()
-    # if args.ipv4:
-    #     res()
-    # if args.config:
-    #     config = get_config(args.config)
-    #     if config.ipv4:
-    #         args.ipv4 = True
-    #     if config.ipv6:
-    #         args.ipv6 = True
-
+    print(args)
+    # 使用参数运行
+    if args.ipv4 and args.ipv6 is False:
+        r = res(hostname=args.hostname, token=args.token, ipv4=ip["ipv4"])
+        ipv4_log(r)
+    if args.ipv6 and args.ipv4 is False:
+        r = res(hostname=args.hostname, token=args.token, ipv6=ip["ipv6"])
+        ipv6_log(r)
+    if args.ipv4 and args.ipv6:
+        r = res(hostname=args.hostname, token=args.token, ipv4=ip["ipv4"], ipv6=ip["ipv6"])
+        ipv4_ipv6_log(r)
+    # 使用配置文件运行
+    if args.config:
+        config = get_config(args.config)
+        if config["ipv4"] and config["ipv6"] is False:
+            r = res(hostname=config["hostname"], token=config["token"], ipv4=ip["ipv4"])
+            ipv4_log(r)
+        if config["ipv6"] and config["ipv4"] is False:
+            r = res(hostname=config["hostname"], token=config["token"], ipv6=ip["ipv6"])
+            ipv6_log(r)
+        elif config["ipv4"] and config["ipv6"]:
+            r = res(hostname=config["hostname"], token=config["token"], ipv4=ip["ipv4"], ipv6=ip["ipv6"])
+            ipv4_ipv6_log(r)
