@@ -1,0 +1,2 @@
+# ddns_for_dynv6
+自动更新dynv6的DNS记录指向本地ip
