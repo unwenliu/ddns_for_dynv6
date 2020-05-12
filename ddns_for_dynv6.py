@@ -8,7 +8,7 @@ import re
 import requests
 
 __description__ = "自动更新dynv6的DNS记录指向本地ip,支持ipv4和ipv6"
-__version__ = '1.0'
+__version__ = '%(prog)s 1.0'
 
 # 输入log到文件
 logging.basicConfig(filename='ddns_for_dynv6.log', level=logging.INFO, filemode='a',
@@ -98,11 +98,11 @@ def parse_args():
     parser = ArgumentParser(description=__description__, formatter_class=RawTextHelpFormatter)
     use_config_group = parser.add_argument_group(title='使用配置文件运行')
     use_args_group = parser.add_argument_group(title='使用参数运行')
-    use_config_group.add_argument('-c', '--config', help="指定配置文件运行 [配置文件路径]", default='config.json')
+    use_config_group.add_argument('-c', '--config', help="指定配置文件运行 [配置文件路径]")
     use_args_group.add_argument('-hostname', help="要更新的域名")
     use_args_group.add_argument('-token', help="dynv6里域名所绑定的token")
-    use_args_group.add_argument('-4', '--ipv4', default='false', action='store_true', help="更新ipv4地址", dest='ipv4')
-    use_args_group.add_argument('-6', '--ipv6', default='false', action='store_true', help="更新ipv6地址", dest='ipv6')
+    use_args_group.add_argument('-4', '--ipv4', action='store_true', help="更新ipv4地址", dest='ipv4')
+    use_args_group.add_argument('-6', '--ipv6', action='store_true', help="更新ipv6地址", dest='ipv6')
     parser.add_argument('-v', '--version', action='version', version=__version__, help='显示版本信息')
     args = parser.parse_args()
     return args
@@ -111,19 +111,18 @@ def parse_args():
 if __name__ == '__main__':
     ip = get_ip()
     args = parse_args()
-    print(args)
     # 使用参数运行
-    if args.ipv4 and args.ipv6 is False:
+    if args.ipv4 and args.ipv6 is False and args.hostname is not None and args.token is not None:
         r = res(hostname=args.hostname, token=args.token, ipv4=ip["ipv4"])
         ipv4_log(r)
-    if args.ipv6 and args.ipv4 is False:
+    if args.ipv6 and args.ipv4 is False and args.hostname is not None and args.token is not None:
         r = res(hostname=args.hostname, token=args.token, ipv6=ip["ipv6"])
         ipv6_log(r)
-    if args.ipv4 and args.ipv6:
+    if args.ipv4 and args.ipv6 and args.hostname is not None and args.token is not None:
         r = res(hostname=args.hostname, token=args.token, ipv4=ip["ipv4"], ipv6=ip["ipv6"])
         ipv4_ipv6_log(r)
     # 使用配置文件运行
-    if args.config:
+    if args.config is not None:
         config = get_config(args.config)
         if config["ipv4"] and config["ipv6"] is False:
             r = res(hostname=config["hostname"], token=config["token"], ipv4=ip["ipv4"])
