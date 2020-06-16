@@ -8,19 +8,21 @@ import (
 	"os"
 
 	"github.com/asmcos/requests"
-	"github.com/goinggo/mapstructure"
+    "github.com/goinggo/mapstructure"
 )
 
 //dynv6的api地址
 const Dynv6Url string = "https://dynv6.com/api/update"
 
 var (
-	help     bool   //帮助
-	inter    string //网卡
-	hostname string //域名
-	token    string //token
-	ipv4     bool
-	ipv6     bool
+	help      bool   //帮助
+	inter     string //网卡
+	hostname  string //域名
+	token     string //token
+	ipv4      bool
+	ipv6      bool
+	show_ipv4 bool
+	show_ipv6 bool
 )
 
 func init() {
@@ -30,6 +32,8 @@ func init() {
 	flag.StringVar(&token, "token", "", "你的dynv6里的域名所绑定的token")
 	flag.BoolVar(&ipv4, "4", false, "更新ipv4地址")
 	flag.BoolVar(&ipv6, "6", false, "更新ipv6地址")
+	flag.BoolVar(&show_ipv4, "show_ipv4", false, "显示指定网卡的ipv4地址")
+	flag.BoolVar(&show_ipv6, "show_ipv6", false, "显示指定网卡的ipv6地址")
 	flag.Usage = usage
 }
 
@@ -38,6 +42,8 @@ func usage() {
 使用说明：ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6]
 选项：
     -i 网卡名                  ip所绑定的网卡
+    -show_ipv4                 显示指定网卡的ipv4地址
+    -show_ipv6                 显示指定网卡的ipv6地址
     -hostname 域名             你的域名
     -token token               你的token
     -4                         更新ipv4地址
@@ -60,10 +66,10 @@ func GetIP(interfaceName string) map[string]string {
 	for _, addr := range addrs {
 		if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				log.Printf("获取到网卡:%v ipv4地址:%v", inter.Name, ipnet.IP)
+				//log.Printf("获取到网卡:%v ipv4地址:%v", inter.Name, ipnet.IP)
 				ipaddr["ipv4"] = ipnet.IP.String()
 			} else {
-				log.Printf("获取到网卡:%v ipv6地址:%v", inter.Name, ipnet.IP)
+				//log.Printf("获取到网卡:%v ipv6地址:%v", inter.Name, ipnet.IP)
 				ipaddr["ipv6"] = ipnet.IP.String()
 			}
 		}
@@ -119,7 +125,7 @@ func main() {
 		config := make(map[string]string)
 		config["hostname"] = hostname
 		config["token"] = token
-		if ipv4 && !ipv6{
+		if ipv4 && !ipv6 {
 			config["ipv4"] = ipaddr["ipv4"]
 			res(config)
 		} else if ipv6 && !ipv4 {
@@ -130,6 +136,20 @@ func main() {
 			config["ipv6"] = ipaddr["ipv6"]
 			res(config)
 		}
+	} else if show_ipv4 {
+		ipaddr := GetIP(inter)
+		if ipaddr["ipv4"] != "" {
+			fmt.Printf("获得网卡%v的ipv4地址为%v", inter, ipaddr["ipv4"])
+		} else {
+			fmt.Printf("获得网卡%v的ipv4地址失败",inter)
+		}
+	} else if show_ipv6 {
+		ipaddr := GetIP(inter)
+		if ipaddr["ipv6"] !="" {
+			fmt.Printf("获得网卡%v的ipv6地址为%v", inter, ipaddr["ipv6"])
+		} else {
+            fmt.Printf("获得网卡%v的ipv6地址失败",inter)
+        }
 	} else {
 		flag.Usage()
 	}
