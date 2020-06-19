@@ -80,37 +80,37 @@ func GetIP(interfaceName string) map[string]string {
 func res(config map[string]string) {
 	p := requests.Params{}
 	if err := mapstructure.Decode(config, &p); err != nil {
-		log.Fatalf("转换struct失败,原因:%v", err)
+		log.Fatalf("转换struct失败,原因:%v\n", err)
 	}
 	resp, err := requests.Get(Dynv6Url, p)
 	if err != nil {
-		log.Fatalf("向dynv6发送请求失败,原因:%v", resp.Text())
+		log.Fatalf("向dynv6发送请求失败,原因:%v\n", resp.Text())
 	}
 	if resp.R.StatusCode != 200 {
 		if ipv4 && !ipv6 {
-			log.Fatalf("更新ipv4失败,dynv6返回%v", resp.Text())
+			log.Fatalf("更新ipv4失败,dynv6返回%v\n", resp.Text())
 		} else if ipv6 && !ipv4 {
-			log.Fatalf("更新ipv6失败,dynv6返回%v", resp.Text())
+			log.Fatalf("更新ipv6失败,dynv6返回%v\n", resp.Text())
 		} else if ipv4 && ipv6 {
-			log.Fatalf("更新ipv4和ipv6失败,dynv6返回%v", resp.Text())
+			log.Fatalf("更新ipv4和ipv6失败,dynv6返回%v\n", resp.Text())
 		}
 	} else if ipv4 && !ipv6 {
 		if config["ipv4"] != "" {
-			log.Printf("更新ipv4地址成功,dyn6返回%v", resp.Text())
+			log.Printf("更新ipv4地址成功,dyn6返回%v\n", resp.Text())
 		} else {
-			log.Fatalf("更新ipv4地址失败,原因未取到ipv4地址")
+			log.Fatalf("更新ipv4地址失败,原因未取到ipv4地址\n")
 		}
 	} else if ipv6 && !ipv4 {
 		if config["ipv6"] != "" {
-			log.Printf("更新ipv6地址成功,dynv6返回%v", resp.Text())
+			log.Printf("更新ipv6地址成功,dynv6返回%v\n", resp.Text())
 		} else {
-			log.Fatalf("更新ipv6地址失败,原因未取到ipv6地址")
+			log.Fatalf("更新ipv6地址失败,原因未取到ipv6地址\n")
 		}
 	} else if ipv4 && ipv6 {
 		if config["ipv4"] != "" && config["ipv6"] != "" {
-			log.Printf("更新ipv4地址和ipv6地址成功,dynv6返回%v", resp.Text())
+			log.Printf("更新ipv4地址和ipv6地址成功,dynv6返回%v\n", resp.Text())
 		} else {
-			log.Fatalf("更新ipv4地址或ipv6地址失败,原因是ipv4地址或ipv6地址未取到")
+			log.Fatalf("更新ipv4地址或ipv6地址失败,原因是ipv4地址或ipv6地址未取到\n")
 		}
 	}
 }
@@ -139,16 +139,16 @@ func main() {
 	} else if show_ipv4 {
 		ipaddr := GetIP(inter)
 		if ipaddr["ipv4"] != "" {
-			fmt.Printf("获得网卡%v的ipv4地址为%v", inter, ipaddr["ipv4"])
+			fmt.Printf("获得网卡%v的ipv4地址为%v\n", inter, ipaddr["ipv4"])
 		} else {
-			fmt.Printf("获得网卡%v的ipv4地址失败",inter)
+			fmt.Printf("获得网卡%v的ipv4地址失败\n",inter)
 		}
 	} else if show_ipv6 {
 		ipaddr := GetIP(inter)
 		if ipaddr["ipv6"] !="" {
-			fmt.Printf("获得网卡%v的ipv6地址为%v", inter, ipaddr["ipv6"])
+			fmt.Printf("获得网卡%v的ipv6地址为%v\n", inter, ipaddr["ipv6"])
 		} else {
-            fmt.Printf("获得网卡%v的ipv6地址失败",inter)
+            fmt.Printf("获得网卡%v的ipv6地址失败\n",inter)
         }
 	} else {
 		flag.Usage()
