@@ -6,7 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
-
+	"time"
 	"github.com/asmcos/requests"
     "github.com/goinggo/mapstructure"
 )
@@ -23,6 +23,7 @@ var (
 	ipv6      bool
 	show_ipv4 bool
 	show_ipv6 bool
+	timer     int
 )
 
 func init() {
@@ -34,12 +35,13 @@ func init() {
 	flag.BoolVar(&ipv6, "6", false, "更新ipv6地址")
 	flag.BoolVar(&show_ipv4, "show_ipv4", false, "显示指定网卡的ipv4地址")
 	flag.BoolVar(&show_ipv6, "show_ipv6", false, "显示指定网卡的ipv6地址")
+	flag.IntVar(&timer, "t", 300,"检查周期（秒），默认300秒")
 	flag.Usage = usage
 }
 
 func usage() {
 	fmt.Fprintf(os.Stderr, `ddnsfordynv6 version: 0.1
-使用说明：ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6]
+使用说明：ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6] [-t]
 选项：
     -i 网卡名                  ip所绑定的网卡
     -show_ipv4                 显示指定网卡的ipv4地址
@@ -48,6 +50,7 @@ func usage() {
     -token token               你的token
     -4                         更新ipv4地址
     -6                         更新ipv6地址
+    -t                         检查周期（秒）,默认300秒
 `)
 }
 
@@ -102,7 +105,8 @@ func res(config map[string]string) {
 		}
 	} else if ipv6 && !ipv4 {
 		if config["ipv6"] != "" {
-			log.Printf("更新ipv6地址成功,dynv6返回%v\n", resp.Text())
+			log.Printf(config["ipv6"])
+			log.Printf("更新ipv6地址成功,当前ipv6地址为%v,dynv6返回%v\n", config["ipv6"],resp.Text())
 		} else {
 			log.Fatalf("更新ipv6地址失败,原因未取到ipv6地址\n")
 		}
@@ -128,13 +132,22 @@ func main() {
 		if ipv4 && !ipv6 {
 			config["ipv4"] = ipaddr["ipv4"]
 			res(config)
+			for range time.Tick(time.Second * time.Duration(timer)){
+				res(config)
+			}
 		} else if ipv6 && !ipv4 {
 			config["ipv6"] = ipaddr["ipv6"]
 			res(config)
+			for range time.Tick(time.Second * time.Duration(timer)){
+				res(config)
+			}
 		} else if ipv4 && ipv6 {
 			config["ipv4"] = ipaddr["ipv4"]
 			config["ipv6"] = ipaddr["ipv6"]
 			res(config)
+			for range time.Tick(time.Second * time.Duration(timer)){
+				res(config)
+			}
 		}
 	} else if show_ipv4 {
 		ipaddr := GetIP(inter)
