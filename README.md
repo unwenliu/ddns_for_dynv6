@@ -11,4 +11,5 @@ ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6]
     -token token               你的token
     -4                         更新ipv4地址
     -6                         更新ipv6地址
+    -t                         检查周期（秒）,默认300秒
 ```
