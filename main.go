@@ -15,32 +15,32 @@ import (
 const Dynv6Url string = "https://dynv6.com/api/update"
 
 var (
-	help      bool   //帮助
-	inter     string //网卡
-	hostname  string //域名
-	token     string //token
-	ipv4      bool
-	ipv6      bool
-	show_ipv4 bool
-	show_ipv6 bool
-	timer     int
+	flagHelp     bool   //帮助
+	flagInter    string //网卡
+	flagHostname string //域名
+	flagToken    string //token
+	flagIpv4     bool
+	flagIpv6     bool
+	show_ipv4    bool
+	show_ipv6    bool
+	flagTimer    int
 )
 
 func init() {
-	flag.BoolVar(&help, "h", false, "帮助")
-	flag.StringVar(&inter, "i", "eth0", "要获取ip的网卡")
-	flag.StringVar(&hostname, "hostname", "", "要更新的域名")
-	flag.StringVar(&token, "token", "", "你的dynv6里的域名所绑定的token")
-	flag.BoolVar(&ipv4, "4", false, "更新ipv4地址")
-	flag.BoolVar(&ipv6, "6", false, "更新ipv6地址")
+	flag.BoolVar(&flagHelp, "h", false, "帮助")
+	flag.StringVar(&flagInter, "i", "eth0", "要获取ip的网卡")
+	flag.StringVar(&flagHostname, "hostname", "", "要更新的域名")
+	flag.StringVar(&flagToken, "token", "", "你的dynv6里的域名所绑定的token")
+	flag.BoolVar(&flagIpv4, "4", false, "更新ipv4地址")
+	flag.BoolVar(&flagIpv6, "6", false, "更新ipv6地址")
 	flag.BoolVar(&show_ipv4, "show_ipv4", false, "显示指定网卡的ipv4地址")
 	flag.BoolVar(&show_ipv6, "show_ipv6", false, "显示指定网卡的ipv6地址")
-	flag.IntVar(&timer, "t", 300, "检查周期（秒），默认300秒")
+	flag.IntVar(&flagTimer, "t", 300, "检查周期（秒），默认300秒")
 	flag.Usage = usage
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `ddnsfordynv6 version: 0.1
+	fmt.Fprintf(os.Stderr, `ddnsfordynv6 version: 0.2
 使用说明：ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6] [-t]
 选项：
     -i 网卡名                  ip所绑定的网卡
@@ -80,7 +80,19 @@ func GetIP(interfaceName string) map[string]string {
 	return ipaddr
 }
 
-func res(config map[string]string) {
+func res() {
+	ipaddr := GetIP(flagInter)
+	config := make(map[string]string)
+	config["hostname"] = flagHostname
+	config["token"] = flagToken
+	if flagIpv4 && !flagIpv6 {
+		config["ipv4"] = ipaddr["ipv4"]
+	} else if flagIpv6 && !flagIpv4 {
+		config["ipv6"] = ipaddr["ipv6"]
+	} else if flagIpv4 && flagIpv6 {
+		config["ipv4"] = ipaddr["ipv4"]
+		config["ipv6"] = ipaddr["ipv6"]
+	}
 	p := requests.Params{}
 	if err := mapstructure.Decode(config, &p); err != nil {
 		log.Fatalf("转换struct失败,原因:%v\n", err)
@@ -90,26 +102,26 @@ func res(config map[string]string) {
 		log.Fatalf("向dynv6发送请求失败,原因:%v\n", resp.Text())
 	}
 	if resp.R.StatusCode != 200 {
-		if ipv4 && !ipv6 {
+		if flagIpv4 && !flagIpv6 {
 			log.Fatalf("更新ipv4失败,dynv6返回%v\n", resp.Text())
-		} else if ipv6 && !ipv4 {
+		} else if flagIpv6 && !flagIpv4 {
 			log.Fatalf("更新ipv6失败,dynv6返回%v\n", resp.Text())
-		} else if ipv4 && ipv6 {
+		} else if flagIpv4 && flagIpv6 {
 			log.Fatalf("更新ipv4和ipv6失败,dynv6返回%v\n", resp.Text())
 		}
-	} else if ipv4 && !ipv6 {
+	} else if flagIpv4 && !flagIpv6 {
 		if config["ipv4"] != "" {
-			log.Printf("更新ipv4地址成功,dyn6返回%v\n", resp.Text())
+			log.Printf("更新ipv4地址成功,当前ipv4地址为%v,dyn6返回%v\n", config["ipv4"], resp.Text())
 		} else {
 			log.Fatalf("更新ipv4地址失败,原因未取到ipv4地址\n")
 		}
-	} else if ipv6 && !ipv4 {
+	} else if flagIpv6 && !flagIpv4 {
 		if config["ipv6"] != "" {
 			log.Printf("更新ipv6地址成功,当前ipv6地址为%v,dynv6返回%v\n", config["ipv6"], resp.Text())
 		} else {
 			log.Fatalf("更新ipv6地址失败,原因未取到ipv6地址\n")
 		}
-	} else if ipv4 && ipv6 {
+	} else if flagIpv4 && flagIpv6 {
 		if config["ipv4"] != "" && config["ipv6"] != "" {
 			log.Printf("更新ipv4地址和ipv6地址成功,dynv6返回%v\n", resp.Text())
 		} else {
@@ -118,49 +130,33 @@ func res(config map[string]string) {
 	}
 }
 
+//定时发送请求
+func cronRequest() {
+	res()
+	for range time.Tick(time.Second * time.Duration(flagTimer)) {
+		res()
+	}
+}
 func main() {
 	// 命令行参数
 	flag.Parse()
-	if help {
+	if flagHelp {
 		flag.Usage()
-	} else if hostname != "" && token != "" {
-		ipaddr := GetIP(inter)
-		config := make(map[string]string)
-		config["hostname"] = hostname
-		config["token"] = token
-		if ipv4 && !ipv6 {
-			config["ipv4"] = ipaddr["ipv4"]
-			res(config)
-			for range time.Tick(time.Second * time.Duration(timer)) {
-				res(config)
-			}
-		} else if ipv6 && !ipv4 {
-			config["ipv6"] = ipaddr["ipv6"]
-			res(config)
-			for range time.Tick(time.Second * time.Duration(timer)) {
-				res(config)
-			}
-		} else if ipv4 && ipv6 {
-			config["ipv4"] = ipaddr["ipv4"]
-			config["ipv6"] = ipaddr["ipv6"]
-			res(config)
-			for range time.Tick(time.Second * time.Duration(timer)) {
-				res(config)
-			}
-		}
+	} else if flagHostname != "" && flagToken != "" && flagInter != "" {
+		cronRequest()
 	} else if show_ipv4 {
-		ipaddr := GetIP(inter)
+		ipaddr := GetIP(flagInter)
 		if ipaddr["ipv4"] != "" {
-			fmt.Printf("获得网卡%v的ipv4地址为%v\n", inter, ipaddr["ipv4"])
+			fmt.Printf("获得网卡%v的ipv4地址为%v\n", flagInter, ipaddr["ipv4"])
 		} else {
-			fmt.Printf("获得网卡%v的ipv4地址失败\n", inter)
+			fmt.Printf("获得网卡%v的ipv4地址失败\n", flagInter)
 		}
 	} else if show_ipv6 {
-		ipaddr := GetIP(inter)
+		ipaddr := GetIP(flagInter)
 		if ipaddr["ipv6"] != "" {
-			fmt.Printf("获得网卡%v的ipv6地址为%v\n", inter, ipaddr["ipv6"])
+			fmt.Printf("获得网卡%v的ipv6地址为%v\n", flagInter, ipaddr["ipv6"])
 		} else {
-			fmt.Printf("获得网卡%v的ipv6地址失败\n", inter)
+			fmt.Printf("获得网卡%v的ipv6地址失败\n", flagInter)
 		}
 	} else {
 		flag.Usage()
