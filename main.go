@@ -3,12 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/asmcos/requests"
-	"github.com/goinggo/mapstructure"
 	"log"
 	"net"
 	"os"
 	"time"
+
+	"github.com/asmcos/requests"
+	"github.com/goinggo/mapstructure"
 )
 
 //dynv6的api地址
@@ -40,7 +41,7 @@ func init() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `ddnsfordynv6 version: 0.2
+	fmt.Fprintf(os.Stderr, `ddnsfordynv6 version: 1.2
 使用说明：ddnsfordynv6 [-i 网卡名] [-hostname 域名] [-token token] [-4] [-6] [-t]
 选项：
     -i 网卡名                  ip所绑定的网卡
